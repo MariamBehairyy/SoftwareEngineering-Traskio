@@ -5,10 +5,17 @@ import os
 app = Flask(__name__)
 CORS(app)
 
+# فتح login.html عند فتح السيرفر على /
 @app.route('/')
 def index():
-    return send_from_directory('', 'login.html')  # هيفتح login.html مباشرة
+    return send_from_directory('', 'login.html')
 
+# فتح signup.html عند فتح /signup
+@app.route('/signup')
+def signup_page():
+    return send_from_directory('frontend', 'signup.html')
+
+# API تسجيل الدخول
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -18,6 +25,7 @@ def login():
         return jsonify({"message": "Login successful"})
     return jsonify({"message": "Invalid credentials"})
 
+# API تسجيل جديد
 @app.route('/signup', methods=['POST'])
 def signup():
     data = request.get_json()

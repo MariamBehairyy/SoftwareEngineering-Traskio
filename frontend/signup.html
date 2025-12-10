@@ -8,7 +8,7 @@
 <body>
     <h2>Signup</h2>
     
-    <form>
+    <form id="signupForm">
         <label>Email:</label><br>
         <input type="email" placeholder="Enter email"><br><br>
         
@@ -22,7 +22,7 @@
     </form>
 
     <script>
-        const form = document.querySelector("form");
+        const form = document.getElementById("signupForm");
 
         form.addEventListener("submit", async (e) => {
             e.preventDefault();
