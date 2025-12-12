@@ -1,43 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login</title>
 </head>
 <body>
-    <h2>Login</h2>
-    
-    <form>
-        <label>Email:</label><br>
-        <input type="email" id="email" placeholder="Enter email"><br><br>
-        
-        <label>Password:</label><br>
-        <input type="password" id="password" placeholder="Enter password"><br><br>
-        
-        <button type="submit">Login</button>
-    </form>
+  <h2>Login</h2>
 
-    <p>Don't have an account? <a href="/signup_page">Signup here</a></p>
+  <form method="POST" action="/login">
+    <label>Email:</label><br />
+    <input type="email" name="email" placeholder="Enter email" required /><br /><br />
 
-    <script>
-        const form = document.querySelector("form");
+    <label>Password:</label><br />
+    <input type="password" name="password" placeholder="Enter password" required /><br /><br />
 
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
+    <button type="submit">Login</button>
+  </form>
 
-            const email = document.getElementById("email").value;
-            const password = document.getElementById("password").value;
+  <p>Don't have an account? <a href="/signup_page">Signup here</a></p>
 
-            const response = await fetch("http://127.0.0.1:5000/login", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ email, password })
-            });
-
-            const data = await response.json();
-            alert(data.message);
-        });
-    </script>
+  <script>
+    // show message from ?msg=
+    const msg = new URLSearchParams(window.location.search).get("msg");
+    if (msg) alert(msg);
+  </script>
 </body>
 </html>

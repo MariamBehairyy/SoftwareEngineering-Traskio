@@ -1,52 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Signup</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Signup</title>
 </head>
 <body>
-    <h2>Signup</h2>
-    
-    <form id="signupForm">
-        <label>Email:</label><br>
-        <input type="email" placeholder="Enter email"><br><br>
-        
-        <label>Password:</label><br>
-        <input type="password" placeholder="Enter password"><br><br>
+  <h2>Signup</h2>
 
-        <label>Confirm Password:</label><br>
-        <input type="password" placeholder="Confirm password"><br><br>
-        
-        <button type="submit">Signup</button>
-    </form>
+  <form method="POST" action="/signup">
+    <label>Email:</label><br />
+    <input type="email" name="email" placeholder="Enter email" required /><br /><br />
 
-    <p>Already have an account? <a href="/">Login here</a></p>
+    <label>Password:</label><br />
+    <input type="password" name="password" placeholder="Enter password" required /><br /><br />
 
-    <script>
-        const form = document.getElementById("signupForm");
+    <label>Confirm Password:</label><br />
+    <input type="password" name="confirm_password" placeholder="Confirm password" required /><br /><br />
 
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
+    <button type="submit">Signup</button>
+  </form>
 
-            const email = document.querySelector('input[type="email"]').value;
-            const password = document.querySelectorAll('input[type="password"]')[0].value;
-            const confirmPassword = document.querySelectorAll('input[type="password"]')[1].value;
+  <p>Already have an account? <a href="/">Login here</a></p>
 
-            if (password !== confirmPassword) {
-                alert("Passwords do not match");
-                return;
-            }
-
-            const response = await fetch("http://127.0.0.1:5000/signup", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ email, password })
-            });
-
-            const data = await response.json();
-            alert(data.message);
-        });
-    </script>
+  <script>
+    const msg = new URLSearchParams(window.location.search).get("msg");
+    if (msg) alert(msg);
+  </script>
 </body>
 </html>
