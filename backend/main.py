@@ -4,7 +4,7 @@ import json
 import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FRONTEND_DIR = os.path.join(BASE_DIR, "../frontend")  # path to frontend
+FRONTEND_DIR = os.path.join(BASE_DIR, "../frontend")
 USERS_FILE = os.path.join(BASE_DIR, "users.json")
 TASKS_FILE = os.path.join(BASE_DIR, "tasks.json")
 
@@ -89,48 +89,38 @@ def me():
 # ---------------- Signup ----------------
 @app.route("/signup", methods=["POST"])
 def signup():
-    if request.is_json:
-        data = request.get_json(silent=True) or {}
-        email = norm_email(data.get("email"))
-        password = data.get("password") or ""
-        confirm = data.get("confirm_password") or data.get("confirmPassword") or ""
-    else:
-        email = norm_email(request.form.get("email"))
-        password = request.form.get("password") or ""
-        confirm = request.form.get("confirm_password") or ""
+    data = request.get_json(silent=True) or request.form
+    email = norm_email(data.get("email"))
+    password = data.get("password") or ""
+    confirm = data.get("confirm_password") or data.get("confirmPassword") or ""
 
     if not email or not password:
         msg = "Missing email or password"
-        return (jsonify({"success": False, "message": msg}), 400) if request.is_json else redirect(f"/signup_page?msg={msg}")
+        return (jsonify({"success": False, "message": msg}), 400)
 
     if confirm and confirm != password:
         msg = "Passwords do not match"
-        return (jsonify({"success": False, "message": msg}), 400) if request.is_json else redirect(f"/signup_page?msg={msg}")
+        return (jsonify({"success": False, "message": msg}), 400)
 
     users = load_users()
     if any(norm_email(u.get("email")) == email for u in users):
         msg = "Email already exists"
-        return (jsonify({"success": False, "message": msg}), 409) if request.is_json else redirect(f"/signup_page?msg={msg}")
+        return (jsonify({"success": False, "message": msg}), 409)
 
     users.append({"email": email, "password": generate_password_hash(password)})
     save_users(users)
 
     msg = "Signup successful. Please login."
-    return jsonify({"success": True, "message": msg}) if request.is_json else redirect(f"/?msg={msg}")
+    return jsonify({"success": True, "message": msg})
 
 # ---------------- Login ----------------
 @app.route("/login", methods=["POST"])
 def login():
-    if request.is_json:
-        data = request.get_json(silent=True) or {}
-        email = norm_email(data.get("email"))
-        password = data.get("password") or ""
-    else:
-        email = norm_email(request.form.get("email"))
-        password = request.form.get("password") or ""
+    data = request.get_json(silent=True) or request.form
+    email = norm_email(data.get("email"))
+    password = data.get("password") or ""
 
     users = load_users()
-
     for u in users:
         if norm_email(u.get("email")) != email:
             continue
@@ -148,16 +138,12 @@ def login():
                 u["password"] = generate_password_hash(password)
                 save_users(users)
 
-            if request.is_json:
-                return jsonify({"success": True, "message": "Login successful", "redirect": "/dashboard"})
-            return redirect("/dashboard")
-
-        break
+            return jsonify({"success": True, "message": "Login successful", "redirect": "/dashboard"})
 
     msg = "Invalid email or password"
-    return (jsonify({"success": False, "message": msg}), 401) if request.is_json else redirect(f"/?msg={msg}")
-# ---------------- Task APIs ----------------
+    return (jsonify({"success": False, "message": msg}), 401)
 
+# ---------------- Task APIs ----------------
 @app.route("/tasks", methods=["GET"])
 def get_tasks():
     if "user" not in session:
@@ -171,14 +157,18 @@ def get_tasks():
 def add_task():
     if "user" not in session:
         return jsonify({"success": False, "message": "Not logged in"}), 401
-    data = request.get_json()
+    data = request.get_json(silent=True) or request.form
+    if not data.get("title"):
+        return jsonify({"success": False, "message": "Task title is required"}), 400
+
     tasks = load_tasks()
     task_id = max([t.get("id", 0) for t in tasks], default=0) + 1
     new_task = {
         "id": task_id,
-        "title": data.get("title", ""),
+        "title": data.get("title"),
         "description": data.get("description", ""),
-        "assigned_to": session["user"]
+        "assigned_to": data.get("assigned_to") or session["user"],
+        "status": "Pending"
     }
     tasks.append(new_task)
     save_tasks(tasks)
@@ -188,17 +178,17 @@ def add_task():
 def edit_task(task_id):
     if "user" not in session:
         return jsonify({"success": False, "message": "Not logged in"}), 401
-    data = request.get_json()
+    data = request.get_json(silent=True) or request.form
     tasks = load_tasks()
     for t in tasks:
         if t["id"] == task_id:
             t["title"] = data.get("title", t["title"])
             t["description"] = data.get("description", t["description"])
             t["status"] = data.get("status", t.get("status", "In Progress"))
+            t["assigned_to"] = data.get("assigned_to", t.get("assigned_to"))
             save_tasks(tasks)
             return jsonify({"success": True, "message": "Task updated successfully"})
     return jsonify({"success": False, "message": "Task not found"}), 404
-
 
 @app.route("/tasks/<int:task_id>", methods=["DELETE"])
 def delete_task(task_id):
@@ -208,6 +198,14 @@ def delete_task(task_id):
     tasks = [t for t in tasks if t["id"] != task_id]
     save_tasks(tasks)
     return jsonify({"success": True, "message": "Task deleted successfully"})
+
+# ---------------- Users API ----------------
+@app.route("/users", methods=["GET"])
+def get_users():
+    if "user" not in session:
+        return jsonify([]), 401
+    users = load_users()
+    return jsonify([u["email"] for u in users])
 
 # ---------------- Run server ----------------
 if __name__ == "__main__":
