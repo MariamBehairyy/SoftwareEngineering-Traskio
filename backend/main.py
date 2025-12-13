@@ -4,13 +4,31 @@ import json
 import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
+FRONTEND_DIR = os.path.join(BASE_DIR, "../frontend")  # path to frontend
 USERS_FILE = os.path.join(BASE_DIR, "users.json")
+TASKS_FILE = os.path.join(BASE_DIR, "tasks.json")
 
+# ---------------- Task helpers ----------------
+def ensure_tasks_file():
+    if not os.path.exists(TASKS_FILE):
+        with open(TASKS_FILE, "w", encoding="utf-8") as f:
+            json.dump([], f)
+
+def load_tasks():
+    ensure_tasks_file()
+    with open(TASKS_FILE, "r", encoding="utf-8") as f:
+        try:
+            return json.load(f)
+        except:
+            return []
+
+def save_tasks(tasks):
+    with open(TASKS_FILE, "w", encoding="utf-8") as f:
+        json.dump(tasks, f, indent=4, ensure_ascii=False)
+
+# ---------------- Flask app ----------------
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "change-this-secret-key")
-
-# prevent caching (so edits appear immediately)
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
 @app.after_request
@@ -18,8 +36,7 @@ def no_cache(resp):
     resp.headers["Cache-Control"] = "no-store"
     return resp
 
-
-# ---------- users helpers ----------
+# ---------------- User helpers ----------------
 def ensure_users_file():
     if not os.path.exists(USERS_FILE):
         with open(USERS_FILE, "w", encoding="utf-8") as f:
@@ -43,8 +60,7 @@ def is_hashed(pw: str) -> bool:
 def norm_email(email: str) -> str:
     return (email or "").strip().lower()
 
-
-# ---------- frontend routes ----------
+# ---------------- Frontend routes ----------------
 @app.route("/")
 def home():
     return send_from_directory(FRONTEND_DIR, "login.html")
@@ -70,8 +86,7 @@ def me():
         return jsonify({"logged_in": False}), 401
     return jsonify({"logged_in": True, "email": session["user"]})
 
-
-# ---------- backend: signup (supports form + json) ----------
+# ---------------- Signup ----------------
 @app.route("/signup", methods=["POST"])
 def signup():
     if request.is_json:
@@ -103,8 +118,7 @@ def signup():
     msg = "Signup successful. Please login."
     return jsonify({"success": True, "message": msg}) if request.is_json else redirect(f"/?msg={msg}")
 
-
-# ---------- backend: login (supports form + json) ----------
+# ---------------- Login ----------------
 @app.route("/login", methods=["POST"])
 def login():
     if request.is_json:
@@ -130,7 +144,6 @@ def login():
         if ok:
             session["user"] = email
 
-            # auto-upgrade plain text -> hashed
             if not is_hashed(stored_pw):
                 u["password"] = generate_password_hash(password)
                 save_users(users)
@@ -143,7 +156,57 @@ def login():
 
     msg = "Invalid email or password"
     return (jsonify({"success": False, "message": msg}), 401) if request.is_json else redirect(f"/?msg={msg}")
+# ---------------- Task APIs ----------------
 
+@app.route("/tasks", methods=["GET"])
+def get_tasks():
+    if "user" not in session:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    user_email = session["user"]
+    tasks = load_tasks()
+    user_tasks = [t for t in tasks if t.get("assigned_to") == user_email]
+    return jsonify(user_tasks)
 
+@app.route("/tasks", methods=["POST"])
+def add_task():
+    if "user" not in session:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    data = request.get_json()
+    tasks = load_tasks()
+    task_id = max([t.get("id", 0) for t in tasks], default=0) + 1
+    new_task = {
+        "id": task_id,
+        "title": data.get("title", ""),
+        "description": data.get("description", ""),
+        "assigned_to": session["user"]
+    }
+    tasks.append(new_task)
+    save_tasks(tasks)
+    return jsonify({"success": True, "message": "Task added successfully", "task": new_task})
+
+@app.route("/tasks/<int:task_id>", methods=["PUT"])
+def edit_task(task_id):
+    if "user" not in session:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    data = request.get_json()
+    tasks = load_tasks()
+    for t in tasks:
+        if t["id"] == task_id:
+            t["title"] = data.get("title", t["title"])
+            t["description"] = data.get("description", t["description"])
+            save_tasks(tasks)
+            return jsonify({"success": True, "message": "Task updated successfully"})
+    return jsonify({"success": False, "message": "Task not found"}), 404
+
+@app.route("/tasks/<int:task_id>", methods=["DELETE"])
+def delete_task(task_id):
+    if "user" not in session:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    tasks = load_tasks()
+    tasks = [t for t in tasks if t["id"] != task_id]
+    save_tasks(tasks)
+    return jsonify({"success": True, "message": "Task deleted successfully"})
+
+# ---------------- Run server ----------------
 if __name__ == "__main__":
     app.run(debug=True)
