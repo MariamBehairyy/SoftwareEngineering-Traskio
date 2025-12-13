@@ -1,0 +1,24 @@
+Class Task
+- task_id: int
+- title: str
+- description: str
+- status: str
++ add_task()
++ edit_task()
++ delete_task()
++ view_task()
+
+Class User
+- user_id: int
+- name: str
++ login()
++ logout()
+
+Class Admin extends User
++ assign_task()
+
+Class Project
+- project_id: int
+- tasks: List[Task]
++ add_task()
++ remove_task()
