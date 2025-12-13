@@ -172,14 +172,22 @@ def add_task():
     if "user" not in session:
         return jsonify({"success": False, "message": "Not logged in"}), 401
     data = request.get_json()
+if not data.get("title"):
+    return jsonify({
+        "success": False,
+        "message": "Task title is required"
+    }), 400
+
     tasks = load_tasks()
     task_id = max([t.get("id", 0) for t in tasks], default=0) + 1
-    new_task = {
-        "id": task_id,
-        "title": data.get("title", ""),
-        "description": data.get("description", ""),
-        "assigned_to": data.get("assigned_to") or session["user"]
-    }
+new_task = {
+    "id": task_id,
+    "title": data.get("title", ""),
+    "description": data.get("description", ""),
+    "assigned_to": data.get("assigned_to") or session["user"],
+    "status": "Pending"
+}
+
     tasks.append(new_task)
     save_tasks(tasks)
     return jsonify({"success": True, "message": "Task added successfully", "task": new_task})
