@@ -84,19 +84,6 @@ python backend/main.py
 
 Open your browser and go to http://127.0.0.1:5000/
 
-## Testing
-
-Run unit tests using:
-```
-python -m unittest discover tests```
-
-The tests cover:
-- User signup
-- User login
-- Invalid login attempts
-- Dashboard access control
-- Session handling
-
 ## Documentation
 
 - Requirements: `docs/requirements.md`
